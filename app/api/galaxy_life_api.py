@@ -3,16 +3,148 @@ import aiohttp
 import pandas as pd
 import re
 from typing import Callable
+from app.database import db_connection
 
 class Mobius():
     """
     Módulo de comunicación con la API de Galaxy Life
     """
 
+    # URL base para conexión con el API de Galaxy Life
     _base_url = "https://api.galaxylifegame.net"
+
+    # Roles de la alianza
+    _alliance_roles = [
+        'general',
+        'captain',
+        'private'
+    ]
+
+
+
+    @classmethod
+    async def get_alliance_coords(cls, alliance_id: int) -> pd.DataFrame:
+        """
+        Obtención de las coordenadas de una alianza registrada en la base de datos.
+        """
+
+        # Obtención de los planetas
+        planets = db_connection.search_read('coords', [('alliance_id', '=', alliance_id)], fields= ['x', 'y', 'war', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id'])
+
+        # Obtención de la información de los enemigos
+        enemies = db_connection.search_read('enemies', [('id', 'in', planets['enemy_id'].to_list())], fields=['name', 'avatar', 'level'])
+
+        # Retorno de la información complementada
+        return (
+            pd.merge(
+                left= planets,
+                right= enemies.rename(columns={'id': 'enemy_id'}),
+                left_on= 'enemy_id',
+                right_on= 'enemy_id',
+                how= 'left'
+            )
+        )
+
+
+
+    @classmethod
+    async def _register_alliance_in_db(cls, alliance_name: str) -> int:
+        """
+        Registro o tentativa de registro de una alianza y sus miembros en la base de datos.
+        """
+
+        # Obtención de la ID de la alianza
+        alliance_id = await cls._get_alliance_id(alliance_name)
+
+        # Conteo de registros
+        count = db_connection.search_count('enemies', [('alliance_id', '=', alliance_id)])
+
+        # Si no hay registros
+        if not count:
+
+            # Obtención de los datos de la alianza
+            alliance_data = await Mobius.get_alliance_info(alliance_name)
+
+            # Creación de los datos a registrar en la base de datos
+            records = (
+                alliance_data
+                .rename(
+                    columns= {
+                        'alliance_role': 'role'
+                    }
+                )
+                [[
+                    'id',
+                    'name',
+                    'avatar',
+                    'level',
+                    'role',
+                ]]
+                .assign(
+                    **{
+                        'role': lambda df: df['role'].apply(lambda value: cls._alliance_roles[value])
+                    }
+                )
+                .assign(
+                    **{
+                        'alliance_id': await Mobius._get_alliance_id(alliance_name)
+                    }
+                )
+                .to_dict('records')
+            )
+
+            # Registro de los enemigos en la base de datos
+            db_connection.create('enemies', records)
+
+            # Obtención de los registros de enemigos (Con ID de base de datos)
+            enemies = db_connection.search_read('enemies', [('alliance_id', '=', alliance_id)], fields=['name', 'avatar', 'level', 'role', 'alliance_id'])
+
+            # Obtención de los niveles de base estelar de cada enemigo
+            planets = await Mobius.get_alliance_players(alliance_name)
+
+            # Crfeación de los datos de planetas principales
+            coords_records = (
+                pd.merge(
+                    left= enemies,
+                    right= planets[['name', 'starbase']],
+                    left_on= 'name',
+                    right_on= 'name',
+                    how= 'left'
+                )
+                .rename(
+                    columns= {
+                        'id': 'enemy_id',
+                        'starbase': 'starbase_level',
+                    }
+                )
+                [[
+                    'starbase_level',
+                    'enemy_id',
+                    'alliance_id',
+                ]]
+                .assign(
+                    **{
+                        'war': True,
+                        'create_uid': 1,
+                        'write_uid': 1,
+                    }
+                )
+                .to_dict('records')
+            )
+
+            # Registro de los planetas principales
+            db_connection.create('coords', coords_records)
+
+        # Retorno de la ID de la alianza en la base de datos
+        return alliance_id
+
+
 
     @classmethod
     async def get_alliance_info(cls, alliance_name: str) -> pd.DataFrame:
+        """
+        Obtención de la información de la alianaza desde el API de Galaxy Life.
+        """
 
         data = await cls._get(cls._base_url, "/alliances/get", {'name': alliance_name})
 
@@ -22,15 +154,26 @@ class Mobius():
         # Retorno del DataFrame
         return df.pipe(cls._apply_pipes(cls._pipes.sort_players_by_xplevel))
 
+
+
     @classmethod
     async def get_player_info(cls, player_id: int):
+        """
+        Obtención de los datos de un jugador individual.
+        """
 
+        # Obtención de los datos del jugador
         data = await cls._get(cls._base_url, "/users/get", {'id': player_id})
 
         return data
 
+
+
     @classmethod
     async def get_alliance_players(cls, alliance_name: str):
+        """
+        Obtención de la información de los jugadores de una alianza.
+        """
 
         # Obtención de la información de la alianza
         alliance = await cls.get_alliance_info(alliance_name)
@@ -55,12 +198,52 @@ class Mobius():
 
         # Retorno del DataFrame transformado para su uso
         return data.pipe(cls._apply_pipes(cls._pipes.sort_players_by_sblevel))
-    
+
+
+
+    @classmethod
+    async def _get_alliance_id(cls, alliance_name: str) -> int:
+        """
+        Obtención de la ID de una alianza registrada en la base de datos. En caso de no existir
+        ésta, se registra y se retorna la ID generada en la base de datos.
+        """
+
+        # Búsqueda de la alianza en la base de datos
+        db_data = db_connection.search_read('alliances', [('name', '=', alliance_name.lower())], fields= ['name', 'logo', 'level'], output_format= 'dict')
+
+        if not len(db_data):
+            # Búsqueda de la alianza en la API de GL
+            api_data = await Mobius._get(Mobius._base_url, "/alliances/get", {'name': alliance_name})
+
+            # Estructura del registro
+            record = {
+                'name': api_data['Name'].lower(),
+                'logo': f'{api_data['Emblem']['Shape']}:{api_data['Emblem']['Pattern']}:{api_data['Emblem']['Icon']}',
+                'level': api_data['AllianceLevel'],
+            }
+
+            # Creación del registro en la base de datos
+            db_connection.create('alliances', record)
+
+            # Búsqueda de la alianza en la base de datos
+            db_data = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
+
+        # Obtención de la ID de la alianza
+        alliance_id = db_data[0]['id']
+
+        # Retorno de la ID
+        return alliance_id
+
+
+
     @classmethod
     def _apply_pipes(
         cls,
         pipe: Callable[[pd.DataFrame], pd.DataFrame] = None
     ) -> Callable[[pd.DataFrame], pd.DataFrame]:
+        """
+        Aplicación de funciones comunes a DataFrame.
+        """
         
         default_pipes = [
             cls._pipes.snake_column_names
@@ -82,6 +265,9 @@ class Mobius():
 
     @classmethod
     async def _get(cls, url: str, path: str, params: dict = {}):
+        """
+        Método de solicitud al API de Galaxy Life.
+        """
 
         # Creación de sesión de solicitud de datos
         async with aiohttp.ClientSession() as session:
@@ -96,6 +282,9 @@ class Mobius():
                 return data
 
     class _pipes:
+        """
+        Subclase contenedora de métodos de aplicación a DataFrames.
+        """
         @classmethod
         def snake_column_names(cls, df: pd.DataFrame) -> pd.DataFrame:
             """
@@ -124,7 +313,6 @@ class Mobius():
         @classmethod
         def sort_players_by_xplevel(cls, df: pd.DataFrame) -> pd.DataFrame:
             return df.sort_values('level', ascending=False)
-
         @classmethod
         def sort_players_by_sblevel(cls, df: pd.DataFrame) -> pd.DataFrame:
             return df.sort_values('starbase', ascending=False)
