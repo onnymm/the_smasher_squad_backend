@@ -314,7 +314,7 @@ class Mobius():
             # Estructura del registro
             record = {
                 'name': api_data['Name'].lower(),
-                'logo': f'{api_data['Emblem']['Shape']}:{api_data['Emblem']['Pattern']}:{api_data['Emblem']['Icon']}',
+                'logo': f"{api_data['Emblem']['Shape']}:{api_data['Emblem']['Pattern']}:{api_data['Emblem']['Icon']}",
                 'level': api_data['AllianceLevel'],
             }
 
