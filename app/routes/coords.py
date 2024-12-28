@@ -1,5 +1,7 @@
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 from app import Mobius
+from app.models.users import UserInDB
+from app.security.auth import is_active_user
 
 router = APIRouter()
 
@@ -8,7 +10,7 @@ router = APIRouter()
     status_code= status.HTTP_200_OK,
     name= "Coordenadas de la guerra actual"
 )
-async def _get_current_coords():
+async def _get_current_coords(active: bool = Depends(is_active_user)):
 
     # Obtención de la alianza enemiga actual
     alliance_id = Mobius.current_opponent_alliance()

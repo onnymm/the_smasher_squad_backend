@@ -20,7 +20,7 @@ class Mobius():
     _alliance_roles = [
         'general',
         'captain',
-        'private'
+        'private',
     ]
 
 
@@ -109,7 +109,22 @@ class Mobius():
         """
 
         # Obtención de los planetas
-        planets = db_connection.search_read('coords', [('alliance_id', '=', alliance_id)], fields= ['x', 'y', 'war', 'planet', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id'])
+        planets = db_connection.search_read(
+            'coords',
+            [('alliance_id', '=', alliance_id)],
+            fields= [
+                'x',
+                'y',
+                'war',
+                'planet',
+                'color',
+                'starbase_level',
+                'under_attack_since',
+                'attacked_at',
+                'enemy_id',
+                'alliance_id'
+            ]
+        )
 
         # Obtención de la información de los enemigos
         enemies = db_connection.search_read('enemies', [('id', 'in', planets['enemy_id'].to_list())], fields=['name', 'avatar', 'level'])

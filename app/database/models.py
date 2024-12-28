@@ -43,9 +43,11 @@ class Users(Base):
 
     __tablename__ = "users"
     user: Mapped[str] = mapped_column(String(24), nullable= False, unique= True)
-    name: Mapped[str] = mapped_column(String(60), nullable= False)
+    name: Mapped[str] = mapped_column(String(60), nullable= True)
     avatar: Mapped[str] = mapped_column(String(100), nullable= True)
+    active: Mapped[bool] = mapped_column(Boolean)
     password: Mapped[str] = mapped_column(String(60), nullable= False)
+    has_changed_password: Mapped[bool] = mapped_column(Boolean)
 
 
 # Alianzas
