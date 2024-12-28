@@ -56,7 +56,9 @@ class Alliances(Base):
     name: Mapped[str] = mapped_column(String(25), nullable= False)
     logo: Mapped[str] = mapped_column(String(20), nullable= False)
     level: Mapped[int] = mapped_column(Integer, nullable=False)
+
     enemies: Mapped[list["Enemies"]] = relationship("Enemies", back_populates="alliance")
+    war: Mapped[list["CurrentWar"]] = relationship("CurrentWar", back_populates="alliance")
     coords: Mapped[list["Coordinates"]] = relationship("Coordinates", back_populates="alliance")
 
 
@@ -82,6 +84,7 @@ class Coordinates(Base):
     x: Mapped[int] = mapped_column(Integer, nullable= True)
     y: Mapped[int] = mapped_column(Integer, nullable= True)
     war: Mapped[bool] = mapped_column(Boolean, nullable= False)
+    planet: Mapped[int] = mapped_column(Integer)
     color: Mapped[SolarSystemColor] = mapped_column(SQLEnum(SolarSystemColor), nullable= True)
     starbase_level: Mapped[int] = mapped_column(Integer)
     under_attack_since: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
@@ -97,3 +100,13 @@ class Coordinates(Base):
 
     alliance_id: Mapped[int] = mapped_column(ForeignKey("alliances.id"), nullable= True)
     alliance: Mapped["Alliances"] = relationship("Alliances", back_populates= "coords")
+
+
+# Guerra actual
+class CurrentWar(Base):
+
+    __tablename__ = "war"
+
+    alliance_id: Mapped[int] = mapped_column(ForeignKey("alliances.id"), nullable= True)
+    alliance: Mapped["Alliances"] = relationship("Alliances", back_populates= "war")
+    regeneration_hours: Mapped[int] = mapped_column(Integer, nullable= True)

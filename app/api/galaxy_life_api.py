@@ -10,6 +10,9 @@ class Mobius():
     Módulo de comunicación con la API de Galaxy Life
     """
 
+    # Nombre de la alianza propia
+    _own_alliance = 'the smasher squad'
+
     # URL base para conexión con el API de Galaxy Life
     _base_url = "https://api.galaxylifegame.net"
 
@@ -21,6 +24,83 @@ class Mobius():
     ]
 
 
+    @classmethod
+    def current_opponent_alliance(cls) -> bool:
+
+        # Obtención de la ID de la alianza enemiga (Si es que estamos en guerra)
+        alliance_id = int(
+            db_connection.search_read(
+                "war",
+                [('id', '=', 1)],
+                fields=[
+                    "alliance_id"
+                ]
+            )
+            .at[0, "alliance_id"]
+        )
+
+        # Si hay una alianza enemiga
+        if alliance_id != '':
+
+            # Se retorna la ID de la alianza enemiga
+            return alliance_id
+
+        # Se retorna False para manejo del valor
+        else:
+            return False
+
+
+
+    @classmethod
+    async def init_war(cls) -> int | bool:
+
+        # Obtención de los datos de nuestra alianza
+        own_alliance_data = await cls._get(cls._base_url, "/alliances/get", {'name': cls._own_alliance})
+
+        # Se obtiene la ID de la alianza enemiga actual
+        current_opponent_alliance_from_api = own_alliance_data['OpponentAllianceId']
+
+
+        # Si estamos en guerra
+        if current_opponent_alliance_from_api != '':
+
+            # Obtención de la ID de la alianza activa en la base de datos
+            current_opponent_alliance_from_db = (
+                db_connection.search_read(
+                    "war",
+                    [('id', '=', 1)],
+                    fields=[
+                        "alliance_id"
+                    ]
+                )
+                .at[0, "alliance_id"]
+            )
+
+            # Obtención de la ID de la alianza enemiga:
+            current_opponent_alliance_id = await cls._get_alliance_id(current_opponent_alliance_from_api)
+
+            # Si la base de datos está desactualizada
+            if current_opponent_alliance_from_db != current_opponent_alliance_from_api:
+
+
+                # Actualización en la base de datos
+                db_connection.update("war", [1], {"alliance_id": current_opponent_alliance_id})
+
+                # Registro de la alianza en la base de datos
+                await cls._register_alliance_in_db(current_opponent_alliance_from_api)
+
+            # Retorno de la ID de la alianza actual
+            return current_opponent_alliance_id
+
+        else:
+
+            # Se actualiza el estatus de guerra a inactivo
+            db_connection.update("war", [1], {"alliance_id": None, 'regeneration_hours': 3})
+
+            # Retorno de nulidad de alianza enemiga
+            return False
+
+
 
     @classmethod
     async def get_alliance_coords(cls, alliance_id: int) -> pd.DataFrame:
@@ -29,7 +109,7 @@ class Mobius():
         """
 
         # Obtención de los planetas
-        planets = db_connection.search_read('coords', [('alliance_id', '=', alliance_id)], fields= ['x', 'y', 'war', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id'])
+        planets = db_connection.search_read('coords', [('alliance_id', '=', alliance_id)], fields= ['x', 'y', 'war', 'planet', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id'])
 
         # Obtención de la información de los enemigos
         enemies = db_connection.search_read('enemies', [('id', 'in', planets['enemy_id'].to_list())], fields=['name', 'avatar', 'level'])
@@ -125,6 +205,7 @@ class Mobius():
                 .assign(
                     **{
                         'war': True,
+                        'planet': 0,
                         'create_uid': 1,
                         'write_uid': 1,
                     }
@@ -272,14 +353,21 @@ class Mobius():
         # Creación de sesión de solicitud de datos
         async with aiohttp.ClientSession() as session:
 
-            # Solicitud de datos
-            async with session.get(f"{url}{path}", params= params) as response:
+            while True:
 
-                # Obtención del contenido de datos
-                data = json.loads(await response.text())
+                try:
 
-                # Retorno de la información
-                return data
+                    # Solicitud de datos
+                    async with session.get(f"{url}{path}", params= params) as response:
+
+                        # Obtención del contenido de datos
+                        data = json.loads(await response.text())
+
+                        # Retorno de la información
+                        return data
+
+                except json.JSONDecodeError:
+                    continue
 
     class _pipes:
         """
