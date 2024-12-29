@@ -4,9 +4,25 @@ from app.routes import (
     status,
     authentication,
 )
+from fastapi.middleware.cors import CORSMiddleware
 
 # Inicialización de la app
 app = FastAPI()
+
+# Configuración de orígenes permitidos
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+# Agregar el middleware de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Lista de orígenes permitidos
+    allow_credentials=True,
+    allow_methods=["*"],  # Métodos HTTP permitidos
+    allow_headers=["*"],  # Encabezados permitidos
+)
 
 # Rutas de autenticación
 app.include_router(authentication.router, prefix= "/token", tags= ["Autenticación"])
