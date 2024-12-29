@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.routes import (
+    account,
     coords,
     status,
     authentication,
@@ -26,6 +27,7 @@ app.add_middleware(
 
 # Rutas de autenticación
 app.include_router(authentication.router, prefix= "/token", tags= ["Autenticación"])
+app.include_router(account.router, prefix= "/account", tags= ["Cuenta"])
 
 # Se añaden las rutas
 app.include_router(coords.router, prefix= "/alliances", tags= ["Coordenadas"])

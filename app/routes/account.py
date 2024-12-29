@@ -17,7 +17,7 @@ async def _get(user: UserInDB = Depends(get_current_user)):
     """
 
     # Campos a retornar
-    fields = ['id', 'user', 'name', 'odoo_id', 'create_date', 'write_date']
+    fields = ['id', 'user', 'name', 'avatar', 'create_date', 'write_date']
 
     # Obtención del usuario
     [ data ] = db_connection.read("users", [user.id], fields= fields, output_format="dict")
