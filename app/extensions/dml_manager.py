@@ -828,13 +828,44 @@ class DMLManager():
             # Obtención de los datos desde PostgreSQL
             response = conn.execute(stmt)
 
-        # Inicialización del DataFrame de retorno
-        data = pd.DataFrame(response.fetchall())
+        data = self._load_data(response.fetchall(), table_instance)
 
         if output_format == "dict":
             return self._convert_to_dicts(data)
 
         return data
+
+    def _load_data(self, data: list[dict], table_instance: DeclarativeBase) -> pd.DataFrame:
+        """
+        Preparación de los datos para su uso.
+        """
+
+        # Inicialización del DataFrame
+        df = pd.DataFrame(data, dtype= None)
+
+        # Inicialización de diccionario para corrección de tipos de dato
+        proper_dtypes = {}
+
+        # Iteración por cada una de las columnas del DataFrame
+        for col in df.columns:
+
+            # Obtención del tipo de dato de la columna
+            db_type = str(table_instance.__table__.columns[col].type)
+
+            # Si el tipo de dato es entero...
+            if db_type == 'INTEGER':
+                proper_dtypes[col] = 'Int64'
+
+            # Si el tipo de dato es texto...
+            if 'VARCHAR' in str(table_instance.__table__.columns[col].type):
+                proper_dtypes[col] = 'string'
+
+        # Si el diccionario contiene tipos por corregir se realiza la corrección
+        if len(proper_dtypes):
+            df = df.astype(proper_dtypes).replace({pd.NA: None})
+
+        # Retorno del DataFrame
+        return df
 
     def search_count(
         self,

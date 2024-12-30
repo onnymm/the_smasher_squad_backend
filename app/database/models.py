@@ -92,6 +92,9 @@ class Coordinates(Base):
     under_attack_since: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
     attacked_at: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
 
+    attacked_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable= True)
+    attacker: Mapped["Users"] = relationship("Users", foreign_keys=[attacked_by])
+
     enemy_id: Mapped[int] = mapped_column(ForeignKey("enemies.id"))
     enemy: Mapped["Enemies"] = relationship("Enemies", back_populates= "coords")
 

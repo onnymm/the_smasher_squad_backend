@@ -121,22 +121,76 @@ class Mobius():
                 'starbase_level',
                 'under_attack_since',
                 'attacked_at',
+                'attacked_by',
                 'enemy_id',
-                'alliance_id'
+                'alliance_id',
+                'create_uid',
+                'write_uid',
             ]
         )
 
         # Obtención de la información de los enemigos
         enemies = db_connection.search_read('enemies', [('id', 'in', planets['enemy_id'].to_list())], fields=['name', 'avatar', 'level'])
 
+        # Obtención de los usuarios
+        users = db_connection.search_read('users', fields=['user', 'avatar'])
+
         # Retorno de la información complementada
         return (
+            # Unión de planetas con enemigos
             pd.merge(
                 left= planets,
                 right= enemies.rename(columns={'id': 'enemy_id'}),
                 left_on= 'enemy_id',
                 right_on= 'enemy_id',
                 how= 'left'
+            )
+            # Unión con usuario creador
+            .pipe(
+                lambda df: (
+                    pd.merge(
+                        left= df,
+                        right= users.rename(columns={'id': 'create_uid', 'user': 'create_user', 'avatar': 'create_avatar'}),
+                        left_on= 'create_uid',
+                        right_on= 'create_uid',
+                        how= 'left',
+                    )
+                )
+            )
+            # Unión con usuario modificador
+            .pipe(
+                lambda df: (
+                    pd.merge(
+                        left= df,
+                        right= users.rename(columns={'id': 'write_uid', 'user': 'write_user', 'avatar': 'write_avatar'}),
+                        left_on= 'write_uid',
+                        right_on= 'write_uid',
+                        how= 'left',
+                    )
+                )
+            )
+            # Unión con usuario atacante
+            .pipe(
+                lambda df: (
+                    pd.merge(
+                        left= df.astype({'attacked_by': 'Int64'}),
+                        right= users.rename(columns={'id': 'attacked_by', 'user': 'attack_user', 'avatar': 'attack_avatar'}),
+                        left_on= 'attacked_by',
+                        right_on= 'attacked_by',
+                        how= 'left',
+                    )
+                    .astype(
+                        {
+                            'attack_user': 'string',
+                            'attack_avatar': 'string',
+                        }
+                    )
+                    .replace(
+                        {
+                            pd.NA: None
+                        }
+                    )
+                )
             )
         )
 

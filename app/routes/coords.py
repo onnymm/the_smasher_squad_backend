@@ -22,8 +22,93 @@ async def _get_current_coords(active: bool = Depends(is_active_user)):
         coords = await Mobius.get_alliance_coords(alliance_id)
 
         # Retorno de las coordenadas en formato JSON
-        return coords.to_dict("records")
+        data = coords.to_dict("records")
+        count = len(coords)
+        fields = [
+            {
+                'name': 'id',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'x',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'y',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'war',
+                'ttype': 'boolean',
+            },
+            {
+                'name': 'planet',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'color',
+                'ttype': 'char',
+            },
+            {
+                'name': 'starbase_level',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'under_attack_since',
+                'ttype': 'char',
+            },
+            {
+                'name': 'attacked_at',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'enemy_id',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'name',
+                'ttype': 'char',
+            },
+            {
+                'name': 'avatar',
+                'ttype': 'char',
+            },
+            {
+                'name': 'level',
+                'ttype': 'integer',
+            },
+            {
+                'name': 'create_user',
+                'ttype': 'char',
+            },
+            {
+                'name': 'create_avatar',
+                'ttype': 'char',
+            },
+            {
+                'name': 'write_user',
+                'ttype': 'write_avatar',
+            },
+            {
+                'name': 'attack_user',
+                'ttype': 'char',
+            },
+            {
+                'name': 'attack_avatar',
+                'ttype': 'char',
+            },
+        ]
+
+        return {
+            'data': data,
+            'count': count,
+            'fields': fields,
+        }
 
     # Retorno de una lista vacía
     else:
-        return []
+        return {
+            'data': [],
+            'count': 0,
+            'fields': [],
+        }
