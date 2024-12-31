@@ -246,35 +246,48 @@ class Mobius():
             db_connection.create('enemies', records)
 
             # Obtención de los registros de enemigos (Con ID de base de datos)
-            enemies = db_connection.search_read('enemies', [('alliance_id', '=', alliance_id)], fields=['name', 'avatar', 'level', 'role', 'alliance_id'])
+            enemies = db_connection.search_read('enemies', [('alliance_id', '=', alliance_id)], fields=['name', 'alliance_id'])
 
             # Obtención de los niveles de base estelar de cada enemigo
-            planets = await Mobius.get_alliance_players(alliance_name)
+            planets = await Mobius._get_alliance_total_planets(alliance_name)
 
-            # Crfeación de los datos de planetas principales
+            # Obtención de los nombres de los enemigos para merge
+            alliance_info = await Mobius.get_alliance_info(alliance_name)
+
+            # Creación de los datos de planetas principales
             coords_records = (
-                pd.merge(
-                    left= enemies,
-                    right= planets[['name', 'starbase']],
+                # Se unen los planetas con las IDs y nombres de los jugadores
+                planets
+                .merge(
+                    alliance_info[['id', 'name']],
+                    left_on= 'OwnerId',
+                    right_on= 'id',
+                )
+                # Selección de columnas necesarias
+                [[
+                    'name',
+                    'HQLevel',
+                    'planet',
+                ]]
+                # Unión con las IDs de enemigos en la base de datos
+                .merge(
+                    enemies,
                     left_on= 'name',
                     right_on= 'name',
-                    how= 'left'
                 )
-                .rename(
-                    columns= {
-                        'id': 'enemy_id',
-                        'starbase': 'starbase_level',
-                    }
-                )
+                # Reasignación de nombres de columnas
+                .rename(columns={'id': 'enemy_id', 'HQLevel': 'starbase_level'})
+                # Selección final de columnas necesarias
                 [[
                     'starbase_level',
                     'enemy_id',
                     'alliance_id',
+                    'planet',
                 ]]
+                # Asignación de valores por defecto
                 .assign(
                     **{
                         'war': True,
-                        'planet': 0,
                         'create_uid': 1,
                         'write_uid': 1,
                     }
@@ -349,6 +362,36 @@ class Mobius():
         # Retorno del DataFrame transformado para su uso
         return data.pipe(cls._apply_pipes(cls._pipes.sort_players_by_sblevel))
 
+
+    @classmethod
+    async def _get_alliance_total_planets(cls, alliance_name: str) -> pd.DataFrame:
+        """
+        Obtención de los planetas totales de una alianza.
+        """
+
+        # Obtención de la información de jugadores de la alianza
+        alliance_info = await cls.get_alliance_info(alliance_name)
+
+        # Obtención de las IDs de los jugadores
+        player_ids = alliance_info['id'].to_list()
+
+        # Inicialización de la lista de planetas por jugador
+        total_planets: list[pd.DataFrame] = []
+
+        # Iteración por cada una de las IDs de los jugadores
+        for player_id in player_ids:
+
+            # Se obtiene la información del jugador
+            player = await cls.get_player_info(player_id)
+
+            # Se crea el DataFrame de planetas del jugador
+            planets = pd.DataFrame(player['Planets']).reset_index(names='planet')
+
+            # Se añade el DataFrame a la lista
+            total_planets.append( planets )
+
+        # Se retornan los DataFrames concatenados de los planetas totales
+        return pd.concat(total_planets)
 
 
     @classmethod
