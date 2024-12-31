@@ -29,7 +29,7 @@ _KEY = os.environ.get("CRYPT_KEY")
 # Algoritmo de encriptación
 _algorithm = "HS256"
 # Contexto para hasheo
-_pwd_context = CryptContext(schemes= ["bcrypt"], deprecated= "auto")
+pwd_context = CryptContext(schemes= ["bcrypt"], deprecated= "auto")
 
 # Error de credenciales inválidas
 _credentials_exception = HTTPException(
@@ -69,7 +69,7 @@ def hash_password(password: str):
     """
     Obtención de hash de contraseña.
     """
-    return _pwd_context.hash(password)
+    return pwd_context.hash(password)
 
 def authenticate_user(username: str, password: str) -> UserData | bool:
     """
@@ -84,13 +84,13 @@ def authenticate_user(username: str, password: str) -> UserData | bool:
     """
 
     # Obtención del usuario desde la base de datos
-    user = _get_user(username)
+    user = _get_user(username.lower())
 
     # Si existe el usuario se realiza la validación de contraseña
     if user:
 
         # Si la validación de contraseña retorna Verdadero
-        if _pwd_context.verify(password, user.password):
+        if pwd_context.verify(password, user.password):
             # Se retorna el usuario
             return user
 
