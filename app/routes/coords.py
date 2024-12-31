@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from fastapi import APIRouter, Depends, status, Body
 from app.security.auth import is_active_user, get_current_user
 from app import Mobius, db_connection
@@ -209,6 +210,8 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                     )
                 )
             )
+            # Control de posibles np.NaN por si todos los jugadores no tienen últimas colonias
+            .replace({np.nan: None})
             # Se converte a lista de diccionarios
             .to_dict('records')
         )
