@@ -5,6 +5,8 @@ from app.security.auth import is_active_user, get_current_user
 from app import Mobius, db_connection
 from app.models.users import UserInDB
 from typing import Literal
+from datetime import datetime, timedelta
+import pytz
 
 router = APIRouter()
 
@@ -146,6 +148,14 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
             coords
             # Selección de columnas
             [['id', 'x', 'y', 'planet', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id']]
+            .assign(
+                # Creación de columna de horario de regeneración
+                restores_at = lambda df: get_regeneration_time(df['attacked_at']),
+                # Nulidad de información si ha pasado el tiempo establecido
+                attacked_at = lambda df: df['attacked_at'].apply(expire_time).replace({np.nan: None})
+            )
+            # Conversión de valores a cadenas de texto
+            .pipe(stringify_datetime(['attacked_at', 'restores_at']))
             # Creación de un índice en cadena de texto para evitar valores numpy.int64
             .assign(
                 **{
@@ -258,3 +268,151 @@ async def _add_new_coords(
             'write_uid': user.id,
         }
     )
+
+@router.post(
+    "/take_planet",
+    status_code= status.HTTP_200_OK,
+    name= "Reclamar planeta para atacar",
+)
+async def _claim_planet_to_attack(
+    planet_id: int = Body(),
+    user: UserInDB = Depends(get_current_user),
+):
+
+    # Obtención del registro del planeta
+    [ record ] = db_connection.read('coords', [459], fields=['under_attack_since'], output_format='dict')
+
+    # Si el planeta no está siendo atacado...
+    if not record['under_attack_since']:
+
+        # Se reclama
+        db_connection.update(
+            'coords',
+            [planet_id],
+            {
+                'under_attack_since': cdxm_now(),
+                'attacked_by': user.id,
+            }
+        )
+
+        # Confirmación de planeta reclamado
+        return True
+
+    # Confirmación de que alguien más llegó primero
+    return False
+
+@router.post(
+    "/leave_planet",
+    status_code= status.HTTP_200_OK,
+    name= "Dejar de atacar planeta"
+)
+async def _leave_planet(
+    planet_id: int = Body(),
+    user: UserInDB = Depends(get_current_user)
+):
+
+    # Obtención del registro del planeta
+    [ record ] = db_connection.read('coords', [459], fields=['under_attack_since', 'attacked_by'], output_format='dict')
+
+    # Si el planeta no está siendo atacado o el atacante es el mismo usuario
+    if not record['under_attack_since'] or record['attacked_by'] == user.id:
+
+        # Se abandona el planeta
+        db_connection.update(
+            'coords',
+            [planet_id],
+            {
+                'under_attack_since': None,
+            }
+        )
+
+    # Confirmación de cambios realizados
+    return True
+
+
+@router.post(
+    "/mark_attacked",
+    status_code= status.HTTP_200_OK,
+    name= "Marcar un plnaeta como atacado"
+)
+async def _mark_attacked(
+    planet_id: int = Body(),
+    user: UserInDB = Depends(get_current_user),
+):
+
+    # Se marca planeta como atacado
+    db_connection.update(
+        'coords',
+        [planet_id],
+        {
+            'under_attack_since': None,
+            'attacked_by': user.id,
+            'attacked_at': cdxm_now(),
+        }
+    )
+
+    # Confirmación de cambios realizado
+    return True
+
+
+@router.post(
+        "/restore_planet",
+        status_code= status.HTTP_200_OK,
+        name= "Regeneración manual",
+)
+async def _restore_planet(
+    planet_id: int = Body(),
+    user: UserInDB = Depends(get_current_user)
+):
+
+    db_connection.update(
+        'coords',
+        [planet_id],
+        {
+            'attacked_by': user.id,
+            'attacked_at': None,
+        }
+    )
+
+    return True
+
+
+
+def cdxm_now():
+    return datetime.now(pytz.timezone('Etc/GMT+6')).replace(tzinfo=None)
+
+def expire_time(time: datetime | None) -> datetime | None:
+    if time:
+        if (cdxm_now() - time).seconds < 900:
+            return time
+
+    return None
+
+def get_regeneration_time(s: pd.Series) -> pd.Series:
+
+    # Obtención de la información de la guerra actual
+    [ war_info ] = db_connection.search_read('war', fields=['regeneration_hours'], output_format= 'dict')
+
+    # Obtención de las horas de regeneración
+    regeneration_hours = war_info['regeneration_hours']
+
+    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if time else time).replace({np.nan: None})
+
+def stringify_datetime(columns: list[str]):
+
+    # Función de transformación de valor a cadena de texto
+    f = lambda time: str(time) if time else time
+
+    # Función ejecutable por el pipe
+    def callable(df: pd.DataFrame) -> pd.DataFrame:
+
+        # Iteración por columnas
+        for col in columns:
+            # Aplicación de función de transformación
+            df[col] = df[col].apply(f)
+
+        # Retorno del DataFrame
+        return df
+
+    # Retorno de la función ejecutable
+    return callable

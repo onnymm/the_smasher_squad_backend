@@ -80,11 +80,10 @@ class Mobius():
             current_opponent_alliance_id = await cls._get_alliance_id(current_opponent_alliance_from_api)
 
             # Si la base de datos está desactualizada
-            if current_opponent_alliance_from_db != current_opponent_alliance_from_api:
-
+            if current_opponent_alliance_from_db != current_opponent_alliance_id:
 
                 # Actualización en la base de datos
-                db_connection.update("war", [1], {"alliance_id": current_opponent_alliance_id})
+                db_connection.update("war", [1], {"alliance_id": current_opponent_alliance_id, 'regeneration_hours': 3})
 
                 # Registro de la alianza en la base de datos
                 await cls._register_alliance_in_db(current_opponent_alliance_from_api)
