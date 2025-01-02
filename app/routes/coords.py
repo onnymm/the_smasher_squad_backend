@@ -143,11 +143,35 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
         # Obtención de las coordenadas de la alianza enemiga
         coords = await Mobius.get_alliance_coords(alliance_id)
 
+        # Obtención de los usuarios
+        users = (
+            db_connection.search_read("users", fields= ['user', 'avatar'])
+            .rename(
+                columns= {
+                    'id': 'attacked_by',
+                    'user': 'attacker_user',
+                    'avatar': 'attacker_avatar',
+                }
+            )
+        )
+
         # Diccionario de coordenadas mapeado
         mapped_data = (
             coords
             # Selección de columnas
-            [['id', 'x', 'y', 'planet', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'enemy_id', 'alliance_id']]
+            [['id', 'x', 'y', 'planet', 'color', 'starbase_level', 'under_attack_since', 'attacked_at', 'attacked_by', 'enemy_id', 'alliance_id']]
+            .pipe(
+                lambda df: (
+                    pd.merge(
+                        left= df,
+                        right= users,
+                        left_on= 'attacked_by',
+                        right_on= 'attacked_by',
+                        how= 'left'
+                    )
+                    .replace({np.nan: None})
+                )
+            )
             .assign(
                 # Creación de columna de horario de regeneración
                 restores_at = lambda df: get_regeneration_time(df['attacked_at']),
