@@ -28,7 +28,7 @@ class Mobius():
     def current_opponent_alliance(cls) -> bool:
 
         # Obtención de la ID de la alianza enemiga (Si es que estamos en guerra)
-        alliance_id = int(
+        alliance_id = (
             db_connection.search_read(
                 "war",
                 [('id', '=', 1)],
@@ -40,7 +40,7 @@ class Mobius():
         )
 
         # Si hay una alianza enemiga
-        if alliance_id != '':
+        if alliance_id:
 
             # Se retorna la ID de la alianza enemiga
             return alliance_id
