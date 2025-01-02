@@ -43,7 +43,7 @@ class Mobius():
         if alliance_id:
 
             # Se retorna la ID de la alianza enemiga
-            return alliance_id
+            return int(alliance_id)
 
         # Se retorna False para manejo del valor
         else:

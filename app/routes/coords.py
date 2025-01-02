@@ -163,7 +163,7 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
             .pipe(
                 lambda df: (
                     pd.merge(
-                        left= df,
+                        left= df.astype({'attacked_by': 'Int64'}),
                         right= users,
                         left_on= 'attacked_by',
                         right_on= 'attacked_by',
