@@ -280,7 +280,9 @@ async def _claim_planet_to_attack(
 ):
 
     # Obtención del registro del planeta
-    [ record ] = db_connection.read('coords', [459], fields=['under_attack_since'], output_format='dict')
+    [ record ] = db_connection.read('coords', [planet_id], fields=['under_attack_since'], output_format='dict')
+
+    print(record['under_attack_since'])
 
     # Si el planeta no está siendo atacado...
     if not record['under_attack_since']:
@@ -312,7 +314,7 @@ async def _leave_planet(
 ):
 
     # Obtención del registro del planeta
-    [ record ] = db_connection.read('coords', [459], fields=['under_attack_since', 'attacked_by'], output_format='dict')
+    [ record ] = db_connection.read('coords', [planet_id], fields=['under_attack_since', 'attacked_by'], output_format='dict')
 
     # Si el planeta no está siendo atacado o el atacante es el mismo usuario
     if not record['under_attack_since'] or record['attacked_by'] == user.id:
