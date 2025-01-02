@@ -152,7 +152,7 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                 # Creación de columna de horario de regeneración
                 restores_at = lambda df: get_regeneration_time(df['attacked_at']),
                 # Nulidad de información si ha pasado el tiempo establecido
-                attacked_at = lambda df: df['attacked_at'].apply(expire_time).replace({np.nan: None})
+                attacked_at = lambda df: df['attacked_at'].apply(expire_time(900)).replace({np.nan: None})
             )
             # Conversión de valores a cadenas de texto
             .pipe(stringify_datetime(['attacked_at', 'restores_at']))
@@ -381,12 +381,16 @@ async def _restore_planet(
 def cdxm_now():
     return datetime.now(pytz.timezone('Etc/GMT+6')).replace(tzinfo=None)
 
-def expire_time(time: datetime | None) -> datetime | None:
-    if time:
-        if (cdxm_now() - time).seconds < 900:
-            return time
+def expire_time(seconds: int = 900) -> datetime | None:
+    
+    def callback(time: datetime | None):
+        if time:
+            if (cdxm_now() - time).seconds < seconds:
+                return time
+        return None
 
-    return None
+    return callback
+
 
 def get_regeneration_time(s: pd.Series) -> pd.Series:
 
@@ -396,7 +400,7 @@ def get_regeneration_time(s: pd.Series) -> pd.Series:
     # Obtención de las horas de regeneración
     regeneration_hours = war_info['regeneration_hours']
 
-    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(time) else None).replace({np.nan: None})
+    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(10800)(time) else None).replace({np.nan: None})
 
 def stringify_datetime(columns: list[str]):
 
