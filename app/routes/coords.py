@@ -396,7 +396,7 @@ def get_regeneration_time(s: pd.Series) -> pd.Series:
     # Obtención de las horas de regeneración
     regeneration_hours = war_info['regeneration_hours']
 
-    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if time else time).replace({np.nan: None})
+    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(time) else None).replace({np.nan: None})
 
 def stringify_datetime(columns: list[str]):
 
