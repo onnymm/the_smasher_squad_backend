@@ -176,10 +176,10 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                 # Creación de columna de horario de regeneración
                 restores_at = lambda df: get_regeneration_time(df['attacked_at']),
                 # Nulidad de información si ha pasado el tiempo establecido
-                attacked_at = lambda df: df['attacked_at'].apply(expire_time(900)).replace({np.nan: None})
+                under_attack_since = lambda df: df['under_attack_since'].apply(expire_time(900)).replace({np.nan: None})
             )
             # Conversión de valores a cadenas de texto
-            .pipe(stringify_datetime(['attacked_at', 'restores_at']))
+            .pipe(stringify_datetime(['under_attack_since', 'restores_at']))
             # Creación de un índice en cadena de texto para evitar valores numpy.int64
             .assign(
                 **{
@@ -411,6 +411,7 @@ def expire_time(seconds: int = 900) -> datetime | None:
     
     def callback(time: datetime | None):
         if time:
+            print((cdxm_now() - time).seconds < seconds, seconds)
             if (cdxm_now() - time).seconds < seconds:
                 return time
         return None
