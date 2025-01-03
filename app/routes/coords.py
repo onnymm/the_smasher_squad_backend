@@ -304,12 +304,11 @@ async def _claim_planet_to_attack(
 ):
 
     # Obtención del registro del planeta
-    [ record ] = db_connection.read('coords', [planet_id], fields=['under_attack_since'], output_format='dict')
+    [ record ] = db_connection.read('coords', [planet_id], fields=['under_attack_since', 'attacked_by'], output_format='dict')
 
-    print(record['under_attack_since'])
 
     # Si el planeta no está siendo atacado...
-    if not record['under_attack_since']:
+    if not record['under_attack_since'] or not expire_time()(record['under_attack_since']) or record['attacked_by'] == user.id:
 
         # Se reclama
         db_connection.update(
@@ -411,7 +410,6 @@ def expire_time(seconds: int = 900) -> datetime | None:
     
     def callback(time: datetime | None):
         if time:
-            print((cdxm_now() - time).seconds < seconds, seconds)
             if (cdxm_now() - time).seconds < seconds:
                 return time
         return None
