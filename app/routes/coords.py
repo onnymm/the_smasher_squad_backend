@@ -402,6 +402,49 @@ async def _restore_planet(
     return True
 
 
+@router.get(
+    "/get_enemy_alliance_stats",
+    status_code= status.HTTP_200_OK,
+    name= "Obtención del resumen de la alianza enemiga actual",
+)
+async def _get_enemy_alliance_stats(
+    _: UserInDB = Depends(get_current_user),
+):
+
+    # Obtención de la alianza de guerra actual
+    current_enemy_alliance_id = await Mobius.init_war()
+
+    # Si no hay alianza se retorna False
+    if not current_enemy_alliance_id:
+        return False
+
+    # Obtención del registro de la alianza guardada
+    [ alliance_record ] = db_connection.read('alliances', [current_enemy_alliance_id], ['name'], output_format='dict')
+
+    # Obtención nuevamente de la API para mostrar los datos en el frontend
+    alliance_data_from_api = await Mobius._get(Mobius._base_url, "/alliances/get", {'name': alliance_record['name']})
+
+    # Obtención de los miembros de la alianza enemiga en diccionario
+    enemy_alliance_members = ( await Mobius.get_alliance_info('GalacticGladiators') ).to_dict('records')
+
+    # Retorno de los datos
+    return {
+        # Nombre de la alianza
+        'enemy_alliance_name': alliance_data_from_api['Name'],
+        # Escudo de la alianza
+        'enemy_alliance_logo': {
+            'shape': alliance_data_from_api['Emblem']['Shape'],
+            'pattern': alliance_data_from_api['Emblem']['Pattern'],
+            'icon': alliance_data_from_api['Emblem']['Icon'],
+        },
+        # Miembros de la alianza
+        'enemy_alliance_members': {
+            'data': enemy_alliance_members,
+            'count': len(enemy_alliance_members),
+            'fields': [],
+        }
+    }
+
 
 def cdxm_now():
     return datetime.now(pytz.timezone('Etc/GMT+6')).replace(tzinfo=None)
