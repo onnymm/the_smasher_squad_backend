@@ -425,7 +425,7 @@ async def _get_enemy_alliance_stats(
     alliance_data_from_api = await Mobius._get(Mobius._base_url, "/alliances/get", {'name': alliance_record['name']})
 
     # Obtención de los miembros de la alianza enemiga en diccionario
-    enemy_alliance_members = ( await Mobius.get_alliance_info('GalacticGladiators') ).to_dict('records')
+    enemy_alliance_members = ( await Mobius.get_alliance_info(alliance_data_from_api['Name']) ).to_dict('records')
 
     # Retorno de los datos
     return {
