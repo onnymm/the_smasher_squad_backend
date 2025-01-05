@@ -231,7 +231,7 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                                     .index
                                     .to_list()
                                 ),
-                                ['name', 'avatar', 'level']
+                                ['name', 'avatar', 'level', 'online']
                             )
                             .rename(
                                 columns={
@@ -353,6 +353,38 @@ async def _leave_planet(
         )
 
     # Confirmación de cambios realizados
+    return True
+
+
+@router.post(
+    "/mark_online",
+    status_code= status.HTTP_200_OK,
+    name= "Marcar un jugador como conectado",
+)
+async def _mark_online(
+    enemy_id: int,
+    user: UserInDB = Depends(get_current_user)
+):
+
+    # Escritura en base de datos
+    db_connection.update('enemies', [enemy_id], {'online': True})
+
+    return True
+
+
+@router.post(
+    "/mark_offine",
+    status_code= status.HTTP_200_OK,
+    name= "Marcar un jugador como desconectado",
+)
+async def _mark_offline(
+    enemy_id: int,
+    user: UserInDB = Depends(get_current_user)
+):
+    
+    # Escritura en base de datos
+    db_connection.update('enemies', [enemy_id], {'online': False})
+
     return True
 
 
@@ -494,7 +526,7 @@ def get_regeneration_time(s: pd.Series) -> pd.Series:
     # Obtención de las horas de regeneración
     regeneration_hours = war_info['regeneration_hours']
 
-    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(10800)(time) else None).replace({np.nan: None})
+    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(regeneration_hours * 3600)(time) else None).replace({np.nan: None})
 
 def stringify_datetime(columns: list[str]):
 

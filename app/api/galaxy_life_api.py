@@ -230,7 +230,8 @@ class Mobius():
                 ]]
                 .assign(
                     **{
-                        'role': lambda df: df['role'].apply(lambda value: cls._alliance_roles[value])
+                        'role': lambda df: df['role'].apply(lambda value: cls._alliance_roles[value]),
+                        'online': False,
                     }
                 )
                 .assign(
@@ -418,10 +419,10 @@ class Mobius():
             db_connection.create('alliances', record)
 
             # Búsqueda de la alianza en la base de datos
-            [ db_data ] = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
+            db_data = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
 
         # Obtención de la ID de la alianza
-        alliance_id = db_data['id']
+        alliance_id = db_data[0]['id']
 
         # Retorno de la ID
         return alliance_id
