@@ -405,7 +405,7 @@ class Mobius():
 
         if not len(db_data):
             # Búsqueda de la alianza en la API de GL
-            api_data = await Mobius._get(Mobius._base_url, "/alliances/get", {'name': alliance_name})
+            api_data = await cls._get(cls._base_url, "/alliances/get", {'name': alliance_name})
 
             # Estructura del registro
             record = {
@@ -418,10 +418,10 @@ class Mobius():
             db_connection.create('alliances', record)
 
             # Búsqueda de la alianza en la base de datos
-            db_data = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
+            [ db_data ] = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
 
         # Obtención de la ID de la alianza
-        alliance_id = db_data[0]['id']
+        alliance_id = db_data['id']
 
         # Retorno de la ID
         return alliance_id
