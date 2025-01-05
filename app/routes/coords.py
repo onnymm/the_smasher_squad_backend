@@ -7,6 +7,7 @@ from app.models.users import UserInDB
 from typing import Literal
 from datetime import datetime, timedelta
 import pytz
+from app.constants.constants import planet_wp
 
 router = APIRouter()
 
@@ -427,10 +428,35 @@ async def _get_enemy_alliance_stats(
     # Obtención de los miembros de la alianza enemiga en diccionario
     enemy_alliance_members = ( await Mobius.get_alliance_info(alliance_data_from_api['Name']) ).to_dict('records')
 
+    # Obtención de cantidad de estrellas recolectables en PPs
+    farmeable_stars = int(
+        db_connection.search_read(
+            'coords',
+            ['&',
+                ('planet', '=', 0),
+                ('alliance_id', '=', current_enemy_alliance_id)], ['starbase_level']
+        )
+        .replace(
+            {'starbase_level': planet_wp}
+        )
+        ['starbase_level']
+        .sum()
+    )
+
     # Retorno de los datos
     return {
         # Nombre de la alianza
         'enemy_alliance_name': alliance_data_from_api['Name'],
+        # Descripción de la alianza
+        'enemy_alliance_description': alliance_data_from_api['Description'],
+        # Nivel de la alianza
+        'enemy_alliance_level': alliance_data_from_api['AllianceLevel'],
+        # Guerras ganadas
+        'enemy_alliance_wars_won': alliance_data_from_api['WarsWon'],
+        # Guerras perdidas
+        'enemy_alliance_wars_lost': alliance_data_from_api['WarsLost'],
+        # Estrellas recolectables
+        'enemy_alliance_farmeable_wp': farmeable_stars,
         # Escudo de la alianza
         'enemy_alliance_logo': {
             'shape': alliance_data_from_api['Emblem']['Shape'],
