@@ -481,6 +481,23 @@ async def _restore_planet(
     return True
 
 
+@router.post(
+    "/update_regeneration_hours",
+    status_code= status.HTTP_200_OK,
+    name= "Actualizar timepo de regeneración"
+)
+async def _update_regeneration_hours(
+    time_in_hours: int = Body(),
+    user: UserInDB = Depends(get_current_user),
+) -> bool:
+
+    # Escritura en base de datos
+    db_connection.update('war', [1], {'regeneration_hours': time_in_hours})
+
+    # Confirmación de cambios realizados
+    return True
+
+
 @router.get(
     "/get_enemy_alliance_stats",
     status_code= status.HTTP_200_OK,
