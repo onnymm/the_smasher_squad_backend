@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from fastapi import APIRouter, Depends, status, Body
+from fastapi import APIRouter, Depends, status, Body, Query
 from app.security.auth import is_active_user, get_current_user
 from app import Mobius, db_connection
 from app.models.users import UserInDB
@@ -294,6 +294,30 @@ async def _add_new_coords(
         }
     )
 
+
+@router.delete(
+    "/delete_coords",
+    status_code= status.HTTP_200_OK,
+    name= "Eliminar las coordenadas de un planeta"
+)
+async def _delete_coords(
+    planet_id: int = Query(),
+    user: UserInDB = Depends(get_current_user)
+):
+
+    # Escritura en la base de datos
+    return db_connection.update(
+        'coords',
+        [planet_id],
+        {
+            'x': None,
+            'y': None,
+            'color': None,
+            'write_uid': user.id,
+        }
+    )
+
+
 @router.post(
     "/take_planet",
     status_code= status.HTTP_200_OK,
@@ -362,23 +386,45 @@ async def _leave_planet(
     name= "Marcar un jugador como conectado",
 )
 async def _mark_online(
-    enemy_id: int,
+    enemy_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
 ):
 
-    # Escritura en base de datos
+    # Obtención de las IDs de planetas del jugador
+    planet_ids = (
+        db_connection.search_read(
+            'coords',
+            [('enemy_id', '=', enemy_id)],
+            ['id']
+        )
+        ['id']
+        .to_list()
+    )
+
+    # Se establece estado online a activo
     db_connection.update('enemies', [enemy_id], {'online': True})
 
+    # Se regeneran los planetas
+    db_connection.update(
+        'coords',
+        planet_ids,
+        {
+            'attacked_by': user.id,
+            'attacked_at': None,
+        }
+    )
+
+    # Confirmación de cambios realizados
     return True
 
 
 @router.post(
-    "/mark_offine",
+    "/mark_offline",
     status_code= status.HTTP_200_OK,
     name= "Marcar un jugador como desconectado",
 )
 async def _mark_offline(
-    enemy_id: int,
+    enemy_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
 ):
     
