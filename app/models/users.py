@@ -17,3 +17,4 @@ class UserData(BaseUser):
 
 class UserInDB(UserData, BaseRecord):
     id: int
+    active: bool

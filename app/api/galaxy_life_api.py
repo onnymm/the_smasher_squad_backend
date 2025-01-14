@@ -236,7 +236,7 @@ class Mobius():
                 )
                 .assign(
                     **{
-                        'alliance_id': await Mobius._get_alliance_id(alliance_name)
+                        'alliance_id': alliance_id,
                     }
                 )
                 .to_dict('records')
@@ -363,6 +363,7 @@ class Mobius():
         return data.pipe(cls._apply_pipes(cls._pipes.sort_players_by_sblevel))
 
 
+
     @classmethod
     async def _get_alliance_total_planets(cls, alliance_name: str) -> pd.DataFrame:
         """
@@ -394,6 +395,7 @@ class Mobius():
         return pd.concat(total_planets)
 
 
+
     @classmethod
     async def _get_alliance_id(cls, alliance_name: str) -> int:
         """
@@ -419,7 +421,7 @@ class Mobius():
             db_connection.create('alliances', record)
 
             # Búsqueda de la alianza en la base de datos
-            db_data = db_connection.search_read('alliances', [('name', '=', alliance_name)], fields= ['name', 'logo', 'level'], output_format= 'dict')
+            db_data = db_connection.search_read('alliances', [('name', '=', alliance_name.lower())], fields= ['name', 'logo', 'level'], output_format= 'dict')
 
         # Obtención de la ID de la alianza
         alliance_id = db_data[0]['id']
@@ -456,6 +458,8 @@ class Mobius():
         # Retorno de la función a utilizar
         return callable_pipe
 
+
+
     @classmethod
     async def _get(cls, url: str, path: str, params: dict = {}):
         """
@@ -480,6 +484,8 @@ class Mobius():
 
                 except json.JSONDecodeError:
                     continue
+
+
 
     class _pipes:
         """
