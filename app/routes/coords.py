@@ -504,11 +504,11 @@ async def _update_regeneration_hours(
     name= "Obtención del resumen de la alianza enemiga actual",
 )
 async def _get_enemy_alliance_stats(
-    _: UserInDB = Depends(get_current_user),
+    _: UserInDB = Depends(is_active_user),
 ):
 
     # Obtención de la alianza de guerra actual
-    current_enemy_alliance_id = await Mobius.init_war()
+    current_enemy_alliance_id = Mobius.current_opponent_alliance()
 
     # Si no hay alianza se retorna False
     if not current_enemy_alliance_id:

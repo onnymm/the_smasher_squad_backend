@@ -22,7 +22,7 @@ class _TokenData(BaseModel):
     username: str
 
 # Expiración de token
-_expire_days = 30
+_expire_days = 15
 
 # Clave de encriptación
 _KEY = os.environ.get("CRYPT_KEY")
@@ -134,6 +134,8 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserData:
     try:
         # Decodificación del token usando la llave de encriptación y el algoritmo correspondiente
         payload = jwt.decode(token, _KEY, algorithms= [_algorithm])
+        print(_KEY)
+        print(payload)
         # Obtención del nombre de usuario
         username: str = payload.get("sub")
 

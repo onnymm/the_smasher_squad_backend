@@ -25,7 +25,7 @@ class Mobius():
 
 
     @classmethod
-    def current_opponent_alliance(cls) -> bool:
+    def current_opponent_alliance(cls) -> int | bool:
 
         # Obtención de la ID de la alianza enemiga (Si es que estamos en guerra)
         alliance_id = (
