@@ -231,7 +231,7 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                                     .index
                                     .to_list()
                                 ),
-                                ['name', 'avatar', 'level', 'online']
+                                ['name', 'avatar', 'level', 'online', 'checked']
                             )
                             .rename(
                                 columns={
@@ -268,6 +268,17 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
             'count': 0,
             'fields': [],
         }
+
+@router.put(
+    "/mark_as_checked",
+    name= "Marcar a un jugador como revisado",
+    status_code= status.HTTP_200_OK,
+)
+async def _mark_as_checked(checked: bool = Body(), enemy_id: int = Body(), user: UserInDB = Depends(get_current_user)):
+
+    db_connection.update('enemies', enemy_id, {'checked': checked})
+
+    return True
 
 @router.post(
     "/update_coords",

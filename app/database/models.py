@@ -75,6 +75,7 @@ class Enemies(Base):
     role: Mapped[AllianceRole] = mapped_column(SQLEnum(AllianceRole))
     online: Mapped[bool] = mapped_column(Boolean, nullable= True)
     alliance_id: Mapped[int] = mapped_column(ForeignKey("alliances.id"), nullable= True)
+    checked: Mapped[bool] = mapped_column(Boolean, nullable= True)
 
     alliance: Mapped["Alliances"] = relationship("Alliances", back_populates= "enemies")
     coords: Mapped[list["Coordinates"]] = relationship("Coordinates", back_populates="enemy")
@@ -93,7 +94,6 @@ class Coordinates(Base):
     starbase_level: Mapped[int] = mapped_column(Integer)
     under_attack_since: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
     attacked_at: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
-    checked: Mapped[bool] = mapped_column(Boolean, nullable= True)
 
     attacked_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable= True)
     attacker: Mapped["Users"] = relationship("Users", foreign_keys=[attacked_by])
