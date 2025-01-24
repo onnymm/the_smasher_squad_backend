@@ -134,8 +134,6 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> UserData:
     try:
         # Decodificación del token usando la llave de encriptación y el algoritmo correspondiente
         payload = jwt.decode(token, _KEY, algorithms= [_algorithm])
-        print(_KEY)
-        print(payload)
         # Obtención del nombre de usuario
         username: str = payload.get("sub")
 
