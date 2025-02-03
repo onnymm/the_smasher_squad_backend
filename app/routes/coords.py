@@ -8,6 +8,7 @@ from typing import Literal
 from datetime import datetime, timedelta
 import pytz
 from app.constants.constants import planet_wp
+from app.api.websockets import ws_manager
 
 router = APIRouter()
 
@@ -274,6 +275,7 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
     name= "Marcar a un jugador como revisado",
     status_code= status.HTTP_200_OK,
 )
+@ws_manager.notify_update_to_client
 async def _mark_as_checked(checked: bool = Body(), enemy_id: int = Body(), user: UserInDB = Depends(get_current_user)):
 
     db_connection.update('enemies', enemy_id, {'checked': checked})
@@ -285,6 +287,7 @@ async def _mark_as_checked(checked: bool = Body(), enemy_id: int = Body(), user:
     status_code= status.HTTP_201_CREATED,
     name= "Agregar o editar coordenadas"
 )
+@ws_manager.notify_update_to_client
 async def _add_new_coords(
     colony_id: int = Body(),
     x: int = Body(),
@@ -311,6 +314,7 @@ async def _add_new_coords(
     status_code= status.HTTP_200_OK,
     name= "Eliminar las coordenadas de un planeta"
 )
+@ws_manager.notify_update_to_client
 async def _delete_coords(
     planet_id: int = Query(),
     user: UserInDB = Depends(get_current_user)
@@ -334,6 +338,7 @@ async def _delete_coords(
     status_code= status.HTTP_200_OK,
     name= "Reclamar planeta para atacar",
 )
+@ws_manager.notify_update_to_client
 async def _claim_planet_to_attack(
     planet_id: int = Body(),
     user: UserInDB = Depends(get_current_user),
@@ -367,6 +372,7 @@ async def _claim_planet_to_attack(
     status_code= status.HTTP_200_OK,
     name= "Dejar de atacar planeta"
 )
+@ws_manager.notify_update_to_client
 async def _leave_planet(
     planet_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
@@ -396,6 +402,7 @@ async def _leave_planet(
     status_code= status.HTTP_200_OK,
     name= "Marcar un jugador como conectado",
 )
+@ws_manager.notify_update_to_client
 async def _mark_online(
     enemy_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
@@ -434,6 +441,7 @@ async def _mark_online(
     status_code= status.HTTP_200_OK,
     name= "Marcar un jugador como desconectado",
 )
+@ws_manager.notify_update_to_client
 async def _mark_offline(
     enemy_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
@@ -450,6 +458,7 @@ async def _mark_offline(
     status_code= status.HTTP_200_OK,
     name= "Marcar un plnaeta como atacado"
 )
+@ws_manager.notify_update_to_client
 async def _mark_attacked(
     planet_id: int = Body(),
     user: UserInDB = Depends(get_current_user),
@@ -475,6 +484,7 @@ async def _mark_attacked(
         status_code= status.HTTP_200_OK,
         name= "Regeneración manual",
 )
+@ws_manager.notify_update_to_client
 async def _restore_planet(
     planet_id: int = Body(),
     user: UserInDB = Depends(get_current_user)
@@ -497,6 +507,7 @@ async def _restore_planet(
     status_code= status.HTTP_200_OK,
     name= "Actualizar timepo de regeneración"
 )
+@ws_manager.notify_update_to_client
 async def _update_regeneration_hours(
     time_in_hours: int = Body(),
     user: UserInDB = Depends(get_current_user),
