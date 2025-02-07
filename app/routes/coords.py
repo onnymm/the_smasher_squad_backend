@@ -232,7 +232,9 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
                                     .index
                                     .to_list()
                                 ),
-                                ['name', 'avatar', 'level', 'online', 'checked']
+                                ['name', 'avatar', 'level', 'online', 'checked'],
+                                sortby= 'level',
+                                ascending= False,
                             )
                             .rename(
                                 columns={
