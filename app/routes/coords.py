@@ -3,12 +3,16 @@ import numpy as np
 from fastapi import APIRouter, Depends, status, Body, Query
 from app.security.auth import is_active_user, get_current_user
 from app import Mobius, db_connection
-from app.models.users import UserInDB
+from app.models import (
+    BaseDataRequest,
+    UserInDB
+)
 from typing import Literal
 from datetime import datetime, timedelta
 import pytz
 from app.constants.constants import planet_wp
 from app.api.websockets import ws_manager
+from dml_manager import CriteriaStructure
 
 router = APIRouter()
 
@@ -271,6 +275,77 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
             'count': 0,
             'fields': [],
         }
+
+@router.post(
+    '/available',
+    status_code= status.HTTP_200_OK,
+    name= 'Obtención de planetas disponibles para ser atacados',
+)
+async def _get_available_coords(
+    user: UserInDB = Depends(get_current_user),
+    params: BaseDataRequest = Body(),
+) -> dict:
+
+    # Obtención de la alianza enemiga actual y horas de regeneración
+    ( enemy_alliance_id, regen_hours ) = db_connection.get_values('war', 1, ['alliance_id', 'regeneration_hours'])
+
+    # Si no existe alianza enemiga se retorna una lista vacía
+    if enemy_alliance_id is None:
+        return []
+
+    # Definición del criterio de búsqueda a usar
+    search_criteria: CriteriaStructure = [
+        '&',
+            ('alliance_id', '=', enemy_alliance_id),
+            '&',
+                ('under_attack_since', '=', None),
+                ('attacked_at', '<', get_regen_time_deadline(regen_hours))
+    ]
+
+    # Retorno de la información
+    return {
+        'data': (
+            # Obtención de las coordenadas disponibles
+            db_connection.search_read(
+                'coords',
+                search_criteria,
+                sortby='starbase_level',
+                ascending= False
+            )
+            # Unión con la información de los enemigos
+            .pipe(
+                lambda df: (
+                    df
+                    .merge(
+                        # Obtención de los datos enemigos a partir de las coordenadas disponibles
+                        db_connection.read(
+                            'enemies',
+                            (
+                                df
+                                ['enemy_id']
+                                .unique()
+                                .tolist()
+                            ),
+                            fields= ['id', 'name', 'avatar', 'level']
+                        )
+                        .pipe(
+                            lambda df_: (
+                                df_
+                                # Reasignación de nombres de columnas
+                                .rename(
+                                    columns= {col: f'enemy_{col}' for col in df_.columns}
+                                )
+                            )
+                        ),
+                        on= 'enemy_id'
+                    )
+                )
+            )
+            .rename(columns={'enemy_name': 'name', 'enemy_avatar': 'avatar', 'enemy_level': 'level'})
+            .to_dict('records')
+        ),
+        'count': db_connection.search_count('coords', search_criteria)
+    }
 
 @router.put(
     "/mark_as_checked",
@@ -633,3 +708,7 @@ def stringify_datetime(columns: list[str]):
 
     # Retorno de la función ejecutable
     return callable
+
+def get_regen_time_deadline(regen_hours: int) -> str:
+    regen_time = datetime.now() - timedelta(hours= regen_hours)
+    return str(regen_time).split(".")[0]

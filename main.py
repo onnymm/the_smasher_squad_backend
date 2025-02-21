@@ -21,10 +21,10 @@ origins = [
 # Agregar el middleware de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Lista de orígenes permitidos
+    allow_origins=origins, # Lista de orígenes permitidos
     allow_credentials=True,
-    allow_methods=["*"],  # Métodos HTTP permitidos
-    allow_headers=["*"],  # Encabezados permitidos
+    allow_methods=["*"], # Métodos HTTP permitidos
+    allow_headers=["*"], # Encabezados permitidos
 )
 
 # Rutas de autenticación
@@ -35,5 +35,4 @@ app.include_router(account.router, prefix= "/account", tags= ["Cuenta"])
 app.include_router(coords.router, prefix= "/alliances", tags= ["Coordenadas"])
 app.include_router(status.router, prefix= "/status", tags= ["Estatus"])
 
-# Websockets
 app.include_router(websockets.router, prefix= '/ws', tags= ['Websockets'])
