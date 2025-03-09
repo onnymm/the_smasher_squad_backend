@@ -629,6 +629,9 @@ async def _get_enemy_alliance_stats(
     _: UserInDB = Depends(is_active_user),
 ):
 
+    # Inicialización de guerra
+    mobius.init_war()
+
     # Obtención de la alianza de guerra actual
     current_enemy_alliance_id = await mobius.current_opponent_alliance()
 
