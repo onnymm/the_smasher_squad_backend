@@ -163,6 +163,5 @@ cython_debug/
 #.idea/
 
 db_config.json
-test.ipynb
-db_management.ipynb
+*.ipynb
 *.xlsx

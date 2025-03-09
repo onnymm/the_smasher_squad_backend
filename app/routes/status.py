@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status
-from app import Mobius
+from app import mobius
 
 router = APIRouter()
 
@@ -8,10 +8,10 @@ router = APIRouter()
     status_code= status.HTTP_200_OK,
     name= "Revisión inicial de si hay una nueva guerra"
 )
-async def _refresh_war() -> int | None:
+def _refresh_war() -> int | None:
 
     # Obtención de la ID de la alianza enemiga
-    alliance_id = await Mobius.init_war()
+    alliance_id = mobius.init_war()
 
     # Retorno de la ID de la alianza enemiga
     return alliance_id

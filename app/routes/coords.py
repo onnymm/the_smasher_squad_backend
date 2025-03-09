@@ -2,17 +2,24 @@ import pandas as pd
 import numpy as np
 from fastapi import APIRouter, Depends, status, Body, Query
 from app.security.auth import is_active_user, get_current_user
-from app import Mobius, db_connection
+from app import (
+    db_connection,
+    mobius,
+)
 from app.models import (
     BaseDataRequest,
     UserInDB
 )
 from typing import Literal
 from datetime import datetime, timedelta
-import pytz
 from app.constants.constants import planet_wp
 from app.api.websockets import ws_manager
 from dml_manager import CriteriaStructure
+from app.utils import (
+    get_regeneration_time,
+    expire_time,
+    cdxm_now,
+)
 
 router = APIRouter()
 
@@ -27,13 +34,13 @@ async def _get_current_coords(active: bool = Depends(is_active_user)):
     """
 
     # Obtención de la alianza enemiga actual
-    alliance_id = Mobius.current_opponent_alliance()
+    alliance_id = mobius.current_opponent_alliance()
 
     # Si hay guerra
     if alliance_id:
 
         # Obtención de las coordenadas de la alianza enemiga
-        coords = await Mobius.get_alliance_coords(alliance_id)
+        coords = await mobius.get_alliance_coords(alliance_id)
 
         # Retorno de las coordenadas en formato JSON
         data = coords.to_dict("records")
@@ -141,13 +148,13 @@ async def _get_enemies_coords(active: bool = Depends(is_active_user)):
     planet_names = ['mp', '1th', '2th', '3th', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th']
 
     # Obtención de la alianza enemiga actual
-    alliance_id = Mobius.current_opponent_alliance()
+    alliance_id = await mobius.current_opponent_alliance()
 
     # Si hay guerra
     if alliance_id:
 
         # Obtención de las coordenadas de la alianza enemiga
-        coords = await Mobius.get_alliance_coords(alliance_id)
+        coords = await mobius.get_alliance_coords(alliance_id)
 
         # Obtención de los usuarios
         users = (
@@ -299,52 +306,64 @@ async def _get_available_coords(
             ('alliance_id', '=', enemy_alliance_id),
             '&',
                 ('under_attack_since', '=', None),
-                ('attacked_at', '<', get_regen_time_deadline(regen_hours))
+                '&',
+                    ('x', '!=', None),
+                    ('y', '!=', None),
     ]
 
     # Retorno de la información
-    return {
-        'data': (
-            # Obtención de las coordenadas disponibles
-            db_connection.search_read(
-                'coords',
-                search_criteria,
-                sortby='starbase_level',
-                ascending= False
-            )
-            # Unión con la información de los enemigos
-            .pipe(
-                lambda df: (
-                    df
-                    .merge(
-                        # Obtención de los datos enemigos a partir de las coordenadas disponibles
-                        db_connection.read(
-                            'enemies',
-                            (
-                                df
-                                ['enemy_id']
-                                .unique()
-                                .tolist()
-                            ),
-                            fields= ['id', 'name', 'avatar', 'level']
-                        )
-                        .pipe(
-                            lambda df_: (
-                                df_
-                                # Reasignación de nombres de columnas
-                                .rename(
-                                    columns= {col: f'enemy_{col}' for col in df_.columns}
-                                )
-                            )
+    data = (
+        # Obtención de las coordenadas disponibles
+        db_connection.search_read(
+            'coords',
+            search_criteria,
+            sortby='starbase_level',
+            ascending= False
+        )
+        .assign(
+            # Creación de columna de horario de regeneración
+            restores_at = lambda df: get_regeneration_time(df['attacked_at']),
+            # Nulidad de información si ha pasado el tiempo establecido
+            under_attack_since = lambda df: df['under_attack_since'].apply(expire_time(900)).replace({np.nan: None})
+        )
+        # Unión con la información de los enemigos
+        .pipe(
+            lambda df: (
+                df
+                .merge(
+                    # Obtención de los datos enemigos a partir de las coordenadas disponibles
+                    db_connection.read(
+                        'enemies',
+                        (
+                            df
+                            ['enemy_id']
+                            .unique()
+                            .tolist()
                         ),
-                        on= 'enemy_id'
+                        fields= ['id', 'name', 'avatar', 'level', 'online']
                     )
+                    .pipe(
+                        lambda df_: (
+                            df_
+                            # Reasignación de nombres de columnas
+                            .rename(
+                                columns= {col: f'enemy_{col}' for col in df_.columns}
+                            )
+                        )
+                    ),
+                    on= 'enemy_id'
                 )
             )
-            .rename(columns={'enemy_name': 'name', 'enemy_avatar': 'avatar', 'enemy_level': 'level'})
-            .to_dict('records')
-        ),
-        'count': db_connection.search_count('coords', search_criteria)
+        )
+        .rename(columns={'enemy_name': 'name', 'enemy_avatar': 'avatar', 'enemy_level': 'level'})
+        .pipe(lambda df: df[ (df['restores_at'].isna()) & (df['enemy_online'] == False) ])
+        .replace({np.nan: None})
+        .to_dict('records')
+    )
+
+    return {
+        'data': data,
+        'count': len(data)
     }
 
 @router.put(
@@ -485,11 +504,15 @@ async def _mark_online(
     user: UserInDB = Depends(get_current_user)
 ):
 
-    # Obtención de las IDs de planetas del jugador
+    # Obtención de la ID del planeta principal del jugador
     planet_ids = (
         db_connection.search_read(
             'coords',
-            [('enemy_id', '=', enemy_id)],
+            [
+                '&',
+                    ('enemy_id', '=', enemy_id),
+                    ('planet', '=', 0),
+            ],
             ['id']
         )
         ['id']
@@ -607,7 +630,7 @@ async def _get_enemy_alliance_stats(
 ):
 
     # Obtención de la alianza de guerra actual
-    current_enemy_alliance_id = Mobius.current_opponent_alliance()
+    current_enemy_alliance_id = await mobius.current_opponent_alliance()
 
     # Si no hay alianza se retorna False
     if not current_enemy_alliance_id:
@@ -617,10 +640,10 @@ async def _get_enemy_alliance_stats(
     [ alliance_record ] = db_connection.read('alliances', [current_enemy_alliance_id], ['name'], output_format='dict')
 
     # Obtención nuevamente de la API para mostrar los datos en el frontend
-    alliance_data_from_api = await Mobius._get(Mobius._base_url, "/alliances/get", {'name': alliance_record['name']})
+    alliance_data_from_api = await mobius._get("/alliances/get", {"name": alliance_record['name']}, mobius._base_url)
 
     # Obtención de los miembros de la alianza enemiga en diccionario
-    enemy_alliance_members = ( await Mobius.get_alliance_info(alliance_data_from_api['Name']) ).to_dict('records')
+    enemy_alliance_members = ( await mobius.get_alliance_info(alliance_data_from_api['Name']) ).to_dict('records')
 
     # Obtención de cantidad de estrellas recolectables en PPs
     farmeable_stars = int(
@@ -664,31 +687,6 @@ async def _get_enemy_alliance_stats(
             'fields': [],
         }
     }
-
-
-def cdxm_now():
-    return datetime.now(pytz.timezone('Etc/GMT+6')).replace(tzinfo=None)
-
-def expire_time(seconds: int = 900) -> datetime | None:
-    
-    def callback(time: datetime | None):
-        if time:
-            if (cdxm_now() - time).seconds < seconds:
-                return time
-        return None
-
-    return callback
-
-
-def get_regeneration_time(s: pd.Series) -> pd.Series:
-
-    # Obtención de la información de la guerra actual
-    [ war_info ] = db_connection.search_read('war', fields=['regeneration_hours'], output_format= 'dict')
-
-    # Obtención de las horas de regeneración
-    regeneration_hours = war_info['regeneration_hours']
-
-    return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(regeneration_hours * 3600)(time) else None).replace({np.nan: None})
 
 def stringify_datetime(columns: list[str]):
 
