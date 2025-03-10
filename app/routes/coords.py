@@ -5,6 +5,7 @@ from app.security.auth import is_active_user, get_current_user
 from app import (
     db_connection,
     mobius,
+    Mobius
 )
 from app.models import (
     BaseDataRequest,
@@ -630,7 +631,7 @@ async def _get_enemy_alliance_stats(
 ):
 
     # Inicialización de guerra
-    mobius.init_war()
+    # mobius.init_war()
 
     # Obtención de la alianza de guerra actual
     current_enemy_alliance_id = await mobius.current_opponent_alliance()

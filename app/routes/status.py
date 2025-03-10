@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status
-from app import mobius
+from app import Mobius
 
 router = APIRouter()
 
@@ -11,7 +11,7 @@ router = APIRouter()
 def _refresh_war() -> int | None:
 
     # Obtención de la ID de la alianza enemiga
-    alliance_id = mobius.init_war()
+    alliance_id = Mobius.init_war()
 
     # Retorno de la ID de la alianza enemiga
     return alliance_id
