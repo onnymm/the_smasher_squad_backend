@@ -8,10 +8,10 @@ router = APIRouter()
     status_code= status.HTTP_200_OK,
     name= "Revisión inicial de si hay una nueva guerra"
 )
-def _refresh_war() -> int | None:
+async def _refresh_war() -> int | None:
 
     # Obtención de la ID de la alianza enemiga
-    alliance_id = Mobius.init_war()
+    alliance_id = await Mobius.init_war()
 
     # Retorno de la ID de la alianza enemiga
     return alliance_id

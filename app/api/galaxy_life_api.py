@@ -83,7 +83,7 @@ class Mobius():
             if current_opponent_alliance_from_db != current_opponent_alliance_id:
 
                 # Actualización en la base de datos
-                db_connection.update("war", [1], {"alliance_id": current_opponent_alliance_id, 'regeneration_hours': 3})
+                db_connection.update("war", [1], {"alliance_id": current_opponent_alliance_id, 'enemy_alliance_regeneration_hours': 3})
 
                 # Registro de la alianza en la base de datos
                 await cls._register_alliance_in_db(current_opponent_alliance_from_api)
@@ -94,7 +94,7 @@ class Mobius():
         else:
 
             # Se actualiza el estatus de guerra a inactivo
-            db_connection.update("war", [1], {"alliance_id": None, 'regeneration_hours': 3})
+            db_connection.update("war", [1], {"alliance_id": None, 'enemy_alliance_regeneration_hours': 3})
 
             # Retorno de nulidad de alianza enemiga
             return False

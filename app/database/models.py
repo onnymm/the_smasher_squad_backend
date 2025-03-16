@@ -45,7 +45,10 @@ class Users(Base):
     user: Mapped[str] = mapped_column(String(24), nullable= False, unique= True)
     name: Mapped[str] = mapped_column(String(60), nullable= True)
     avatar: Mapped[str] = mapped_column(String(100), nullable= True)
+    score_at_war_start: Mapped[int] = mapped_column(Integer, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean)
+    last_seen: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
+    last_online_in_game: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
     password: Mapped[str] = mapped_column(String(60), nullable= False)
     has_changed_password: Mapped[bool] = mapped_column(Boolean)
 
@@ -73,6 +76,7 @@ class Enemies(Base):
     avatar: Mapped[str] = mapped_column(String(100), nullable= True)
     level: Mapped[int] = mapped_column(Integer, nullable= False)
     role: Mapped[AllianceRole] = mapped_column(SQLEnum(AllianceRole))
+    under_attack_since: Mapped[DateTime] = mapped_column(DateTime, nullable= True)
     online: Mapped[bool] = mapped_column(Boolean, nullable= True)
     alliance_id: Mapped[int] = mapped_column(ForeignKey("alliances.id"), nullable= True)
     checked: Mapped[bool] = mapped_column(Boolean, nullable= True)
@@ -117,4 +121,5 @@ class CurrentWar(Base):
 
     alliance_id: Mapped[int] = mapped_column(ForeignKey("alliances.id"), nullable= True)
     alliance: Mapped["Alliances"] = relationship("Alliances", back_populates= "war")
-    regeneration_hours: Mapped[int] = mapped_column(Integer, nullable= True)
+    enemy_alliance_regeneration_hours: Mapped[int] = mapped_column(Integer, nullable= True)
+    own_alliance_regeneration_hours: Mapped[int] = mapped_column(Integer, nullable= True)

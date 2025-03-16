@@ -295,7 +295,7 @@ async def _get_available_coords(
 ) -> dict:
 
     # Obtención de la alianza enemiga actual y horas de regeneración
-    ( enemy_alliance_id, regen_hours ) = db_connection.get_values('war', 1, ['alliance_id', 'regeneration_hours'])
+    ( enemy_alliance_id, regen_hours ) = db_connection.get_values('war', 1, ['alliance_id', 'enemy_alliance_regeneration_hours'])
 
     # Si no existe alianza enemiga se retorna una lista vacía
     if enemy_alliance_id is None:
@@ -615,7 +615,7 @@ async def _update_regeneration_hours(
 ) -> bool:
 
     # Escritura en base de datos
-    db_connection.update('war', [1], {'regeneration_hours': time_in_hours})
+    db_connection.update('war', [1], {'enemy_alliance_regeneration_hours': time_in_hours})
 
     # Confirmación de cambios realizados
     return True

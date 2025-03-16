@@ -21,9 +21,9 @@ def expire_time(seconds: int = 900) -> datetime | None:
 def get_regeneration_time(s: pd.Series) -> pd.Series:
 
     # Obtención de la información de la guerra actual
-    [ war_info ] = db_connection.search_read('war', fields=['regeneration_hours'], output_format= 'dict')
+    [ war_info ] = db_connection.search_read('war', fields=['enemy_alliance_regeneration_hours'], output_format= 'dict')
 
     # Obtención de las horas de regeneración
-    regeneration_hours = war_info['regeneration_hours']
+    regeneration_hours = war_info['enemy_alliance_regeneration_hours']
 
     return s.apply(lambda time: (time + timedelta(hours= regeneration_hours)) if expire_time(regeneration_hours * 3600)(time) else None).replace({np.nan: None})

@@ -199,7 +199,7 @@ class Mobius():
                     [1],
                     {
                         'alliance_id': current_opponent_alliance_id,
-                        'regeneration_hours': 3
+                        'enemy_alliance_regeneration_hours': 3
                     }
                 )
 
@@ -217,7 +217,7 @@ class Mobius():
                 [1],
                 {
                     'alliance_id': None,
-                    'regeneration_hours': 3
+                    'enemy_alliance_regeneration_hours': 3
                 }
             )
 
