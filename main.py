@@ -3,8 +3,9 @@ from app.routes import (
     account,
     coords,
     status,
-    authentication,
+    radar,
     players,
+    authentication,
     websockets,
 )
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,5 +37,6 @@ app.include_router(account.router, prefix= "/account", tags= ["Cuenta"])
 app.include_router(coords.router, prefix= "/alliances", tags= ["Coordenadas"])
 app.include_router(status.router, prefix= "/status", tags= ["Estatus"])
 app.include_router(players.router)
+app.include_router(radar.router)
 
 app.include_router(websockets.router, prefix= '/ws', tags= ['Websockets'])

@@ -1,5 +1,5 @@
 from dml_manager import DMLManager
-from typing import Any, TypedDict, Literal, Callable, Coroutine
+from typing import Any, Callable
 import asyncio
 import aiohttp
 import json
@@ -8,48 +8,14 @@ import re
 from app.constants import planet_wp
 from yarl import URL
 import functools
-
-class _AllianceEmblem(TypedDict):
-    Shape: int
-    Pattern: int
-    Icon: int
-
-class _AllianceMember(TypedDict):
-    Id: int
-    Name: str
-    Avatar: str
-    Level: int
-    AllianceRole: Literal[0, 1, 2]
-    TotalWarPoints: int
-
-class AllianceData(TypedDict):
-    Id: str
-    Name: str
-    Description: str
-    Emblem: _AllianceEmblem
-    AllianceLevel: int
-    WarPoints: int
-    WarsWon: int
-    WarsLost: int
-    InWar: bool
-    OpponentAllianceId: int
-    Members: list[_AllianceMember]
-
-class _UserPlanets(TypedDict):
-    OwnerId: int
-    HQLevel: int
-
-class _IndividualUser(TypedDict):
-    Id: int
-    Name: str
-    Avatar: str
-    Level: str
-    Experience: int
-    TutorialCompleted: bool
-    AllianceId: str | None
-    Planets: list[_UserPlanets]
-
-_PipeFunction = Callable[[pd.DataFrame], pd.DataFrame]
+from app.extensions.mobius._types import (
+    _AllianceEmblem,
+    _AllianceMember,
+    _IndividualUser,
+    _UserPlanet,
+    _PipeFunction,
+    AllianceData,
+)
 
 # Pipes por defecto
 _default_pipes: list[_PipeFunction] = [
