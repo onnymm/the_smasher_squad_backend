@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal, Callable
+from typing_extensions import TypedDict, Literal, Callable
 import pandas as pd
 
 class _AllianceEmblem(TypedDict):
