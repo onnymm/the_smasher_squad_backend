@@ -85,3 +85,20 @@ async def _activate_user(
 
         return True
     return 'No eres Onnymm'
+
+@router.post(
+    '/reset_password',
+    status_code= status.HTTP_200_OK,
+    name= 'Restablecer contraseña',
+)
+async def _reset_password(
+    username: str,
+    user: UserInDB = Depends(get_current_user),
+):
+
+    if user.user == 'onnymm':
+        [ user_id ] = db_connection.search('users', [('user', '=', username)])
+        db_connection.update('users', user_id, {'password': hash_password('123456')})
+
+        return True
+    return 'No eres Onnymm'
