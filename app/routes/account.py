@@ -67,3 +67,21 @@ async def _change_display_name(
 
     # Actualización de nombre
     return db_connection.update('users', [user.id], {'name': name})
+
+@router.post(
+    '/activate_user',
+    status_code= status.HTTP_200_OK,
+    name= 'Activar usuario',
+)
+async def _activate_user(
+    username: str,
+    status: bool,
+    user: UserInDB = Depends(get_current_user),
+):
+
+    if user.user == 'onnymm':
+        [ user_id ] = db_connection.search('users', [('user', '=', username)])
+        db_connection.update('users', user_id, {'active': status})
+
+        return True
+    return 'No eres Onnymm'
