@@ -307,9 +307,11 @@ async def _get_available_coords(
             ('alliance_id', '=', enemy_alliance_id),
             '&',
                 ('under_attack_since', '=', None),
-                '&',
-                    ('x', '!=', None),
-                    ('y', '!=', None),
+                '|',
+                    ('planet', '=', 0),
+                    '&',
+                        ('x', '!=', None),
+                        ('y', '!=', None),
     ]
 
     # Retorno de la información
