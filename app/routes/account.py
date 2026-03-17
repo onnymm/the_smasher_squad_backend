@@ -1,6 +1,9 @@
 from fastapi import APIRouter, status, Depends, Body
+from app import (
+    db_connection,
+    mobius,
+)
 from app.security.auth import get_current_user, pwd_context, hash_password
-from app.database import db_connection
 from app.models.users import UserInDB
 
 router = APIRouter()
@@ -102,3 +105,34 @@ async def _reset_password(
 
         return True
     return 'No eres Onnymm'
+
+@router.post(
+    '/create_user',
+    status_code= status.HTTP_201_CREATED,
+    name= 'Crear cuenta de usuario',
+)
+async def _create_user(planer_name: str) -> bool:
+
+    # Obtención de la información del jugador
+    player_info = await mobius.get_player_info(planer_name)
+
+    # Si el jugador ya pertenece a la alianza...
+    if player_info['AllianceId'] == 'the smasher squad':
+        # Obtención de la imagen del jugador
+        player_avatar = player_info['Avatar']
+
+        # Creación del registro del jugador
+        db_connection.create(
+            'users',
+            {
+                'user': planer_name,
+                'avatar': player_avatar,
+                'active': True,
+                'password': hash_password('123456'),
+                'has_changed_password': False,
+                'name': '',
+            })
+
+        return True
+
+    return False

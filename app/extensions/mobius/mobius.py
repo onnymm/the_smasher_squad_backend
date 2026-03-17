@@ -5,7 +5,7 @@ import aiohttp
 import json
 import pandas as pd
 import re
-from app.constants import planet_wp
+from app.constants import WARPOINTS_FROM_STARBASE_LEVEL
 from yarl import URL
 import functools
 from app.extensions.mobius._types import (
@@ -864,7 +864,7 @@ class Analytics():
                     war_points = lambda df: (
                         df
                         ['starbase']
-                        .apply(lambda value: planet_wp[value])
+                        .apply(lambda value: WARPOINTS_FROM_STARBASE_LEVEL[value])
                     )
                 )
             )

@@ -1,5 +1,4 @@
-# Cantidad de estrellas recolectables según el nivel de base estelar
-planet_wp = {
+WARPOINTS_FROM_STARBASE_LEVEL = {
     1: 100,
     2: 200,
     3: 300,
@@ -10,3 +9,7 @@ planet_wp = {
     8: 2000,
     9: 2500,
 }
+"""
+### Puntos por nivel de base estelar
+Cantidad de estrellas recolectables según el nivel de base estelar
+"""

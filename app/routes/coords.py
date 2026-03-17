@@ -13,7 +13,7 @@ from app.models import (
 )
 from typing import Literal
 from datetime import datetime, timedelta
-from app.constants.constants import planet_wp
+from app.constants.constants import WARPOINTS_FROM_STARBASE_LEVEL
 from app.api.websockets import ws_manager
 from dml_manager import CriteriaStructure
 from app.utils import (
@@ -313,6 +313,7 @@ async def _get_available_coords(
                         ('x', '!=', None),
                         ('y', '!=', None),
     ]
+
 
     # Retorno de la información
     data = (
@@ -660,7 +661,7 @@ async def _get_enemy_alliance_stats(
                 ('alliance_id', '=', current_enemy_alliance_id)], ['starbase_level']
         )
         .replace(
-            {'starbase_level': planet_wp}
+            {'starbase_level': WARPOINTS_FROM_STARBASE_LEVEL}
         )
         ['starbase_level']
         .sum()

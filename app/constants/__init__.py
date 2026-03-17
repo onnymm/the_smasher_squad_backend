@@ -1,1 +1,1 @@
-from .constants import planet_wp
+from .constants import WARPOINTS_FROM_STARBASE_LEVEL
