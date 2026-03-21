@@ -125,7 +125,7 @@ async def _create_user(planer_name: str) -> bool:
         db_connection.create(
             'users',
             {
-                'user': planer_name,
+                'user': planer_name.lower(),
                 'avatar': player_avatar,
                 'active': True,
                 'password': hash_password('123456'),
